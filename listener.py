@@ -5,7 +5,18 @@ import json
 
 class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
-        self.data_string = self.rfile.read(int(self.headers["Content-Length"]))
+        if "Content-Length" in self.headers:
+            self.data_string = self.rfile.read(int(self.headers["Content-Length"]))
+        elif "chunked" in self.headers.get("Transfer-Encoding", ""):
+            self.data_string = bytes()
+            while True:
+                line = self.rfile.readline().strip()
+                chunk_length = int(line, 16)
+                if chunk_length != 0:
+                    self.data_string += self.rfile.read(chunk_length)
+                self.rfile.readline()
+                if chunk_length == 0:
+                    break
         self.send_response(200)
         self.end_headers()
         data = json.loads(self.data_string)
