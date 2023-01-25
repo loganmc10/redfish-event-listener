@@ -1,0 +1,60 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: hardware-monitor
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: monitor-deployment
+  namespace: hardware-monitor
+spec:
+  selector:
+    matchLabels:
+      app: hardware-monitor
+  template:
+    metadata:
+      labels:
+        app: hardware-monitor
+    spec:
+      containers:
+        - name: hardware-monitor
+          image: quay.io/lmcnaugh/redfish-event-listener:latest
+          volumeMounts:
+            - mountPath: /etc/tls.crt
+              name: secret-volume
+              subPath: tls.crt
+            - mountPath: /etc/tls.key
+              name: secret-volume
+              subPath: tls.key
+          ports:
+            - containerPort: 4000
+              name: listener
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: secret-volume
+          secret:
+            secretName: monitor-svc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: monitor-svc
+  namespace: hardware-monitor
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: monitor-svc
+spec:
+  type: NodePort
+  selector:
+    app: hardware-monitor
+  ports:
+    - protocol: TCP
+      port: 443
+      nodePort: 30914
+      targetPort: listener
