@@ -58,3 +58,12 @@ spec:
       port: 443
       nodePort: 30914
       targetPort: listener
+---
+apiVersion: metal3.io/v1alpha1
+kind: BMCEventSubscription
+metadata:
+  name: <bmh_name>
+  namespace: openshift-machine-api
+spec:
+   hostName:  <bmh_name>
+   destination: https://16.1.15.2:30914/
